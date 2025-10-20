@@ -164,6 +164,33 @@ $radius-xl: 1rem;
   margin: 0 auto;
 }
 
+// Section Title
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: $text-primary;
+  margin-bottom: 1.5rem;
+}
+
+// Chart Section
+.chart-section {
+  margin-bottom: 3rem;
+  animation: fadeIn 0.4s ease-in;
+}
+
+.chart-container {
+  background-color: $card-background;
+  border-radius: $radius-xl;
+  padding: 2rem;
+  border: 1px solid $border-color;
+  box-shadow: $shadow-md;
+}
+
+// Cards Section
+.cards-section {
+  margin-bottom: 2rem;
+}
+
 .loading,
 .empty-state {
   text-align: center;

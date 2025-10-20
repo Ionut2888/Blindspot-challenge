@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import './App.scss'
 
 const API_URL = 'http://localhost:3000';
@@ -126,36 +127,86 @@ function App() {
             <p>Click "Simulate Event" to generate some data</p>
           </div>
         ) : (
-          <div className="campaigns-grid">
-            {campaigns.map((campaign) => (
-              <div key={campaign.campaign_id} className="campaign-card">
-                <div className="campaign-header">
-                  <h3>{campaign.campaign_id}</h3>
-                  <span className="badge">{campaign.screens} screens</span>
-                </div>
-                
-                <div className="play-count">
-                  <span className="count-label">Total Plays</span>
-                  <span className="count-value">{campaign.play_count}</span>
-                </div>
-
-                <div className="campaign-details">
-                  <div className="detail-row">
-                    <span className="detail-label">Screens:</span>
-                    <span className="detail-value">
-                      {campaign.screen_ids.join(', ')}
-                    </span>
-                  </div>
-                  <div className="detail-row">
-                    <span className="detail-label">Last Played:</span>
-                    <span className="detail-value">
-                      {new Date(campaign.last_played).toLocaleString()}
-                    </span>
-                  </div>
-                </div>
+          <>
+            {/* Bar Chart Section */}
+            <div className="chart-section">
+              <h2 className="section-title">Campaign Performance</h2>
+              <div className="chart-container">
+                <ResponsiveContainer width="100%" height={400}>
+                  <BarChart
+                    data={campaigns}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis 
+                      dataKey="campaign_id" 
+                      stroke="#64748b"
+                      style={{ fontSize: '0.875rem' }}
+                    />
+                    <YAxis 
+                      stroke="#64748b"
+                      style={{ fontSize: '0.875rem' }}
+                      label={{ value: 'Play Count', angle: -90, position: 'insideLeft', style: { fill: '#64748b' } }}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: '#ffffff', 
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '0.5rem',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                      }}
+                      labelStyle={{ color: '#0f172a', fontWeight: 600 }}
+                    />
+                    <Legend 
+                      wrapperStyle={{ paddingTop: '20px' }}
+                      iconType="square"
+                    />
+                    <Bar 
+                      dataKey="play_count" 
+                      fill="#2563eb" 
+                      name="Play Count"
+                      radius={[8, 8, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
-            ))}
-          </div>
+            </div>
+
+            {/* Campaign Cards Section */}
+            <div className="cards-section">
+              <h2 className="section-title">Campaign Details</h2>
+              <div className="campaigns-grid">
+                {campaigns.map((campaign) => (
+                  <div key={campaign.campaign_id} className="campaign-card">
+                    <div className="campaign-header">
+                      <h3>{campaign.campaign_id}</h3>
+                      <span className="badge">{campaign.screens} screens</span>
+                    </div>
+                    
+                    <div className="play-count">
+                      <span className="count-label">Total Plays</span>
+                      <span className="count-value">{campaign.play_count}</span>
+                    </div>
+
+                    <div className="campaign-details">
+                      <div className="detail-row">
+                        <span className="detail-label">Screens:</span>
+                        <span className="detail-value">
+                          {campaign.screen_ids.join(', ')}
+                        </span>
+                      </div>
+                      <div className="detail-row">
+                        <span className="detail-label">Last Played:</span>
+                        <span className="detail-value">
+                          {new Date(campaign.last_played).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
         )}
       </main>
 
