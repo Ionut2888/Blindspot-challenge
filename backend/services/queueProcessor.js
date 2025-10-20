@@ -4,8 +4,14 @@ const PROCESS_INTERVAL = 3000; // Process queue every 3 seconds
 const BATCH_SIZE = 10; // Process up to 10 events per batch
 
 let processorInterval = null;
+let isPaused = false;
 
 function processBatch() {
+  // Skip processing if paused
+  if (isPaused) {
+    return;
+  }
+
   const queueSize = getQueueSize();
   
   if (queueSize === 0) {
@@ -59,8 +65,49 @@ function stopQueueProcessor() {
   }
 }
 
+/**
+ * Pause queue processing (without stopping the interval)
+ */
+function pauseQueueProcessor() {
+  if (!isPaused) {
+    isPaused = true;
+    console.log('[PROCESSOR] Queue processor paused');
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Resume queue processing
+ */
+function resumeQueueProcessor() {
+  if (isPaused) {
+    isPaused = false;
+    console.log('[PROCESSOR] Queue processor resumed');
+    // Process immediately on resume
+    processBatch();
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Get processor status
+ */
+function getProcessorStatus() {
+  return {
+    running: processorInterval !== null,
+    paused: isPaused,
+    interval: PROCESS_INTERVAL,
+    batchSize: BATCH_SIZE
+  };
+}
+
 module.exports = {
   startQueueProcessor,
   stopQueueProcessor,
+  pauseQueueProcessor,
+  resumeQueueProcessor,
+  getProcessorStatus,
   processBatch
 };

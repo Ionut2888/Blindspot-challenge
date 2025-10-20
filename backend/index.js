@@ -3,7 +3,7 @@ const cors = require('cors');
 require('dotenv').config();
 
 const { addEventToQueue, getCampaignStats, getScreenImpressions } = require('./services/eventService');
-const { startQueueProcessor } = require('./services/queueProcessor');
+const { startQueueProcessor, pauseQueueProcessor, resumeQueueProcessor, getProcessorStatus } = require('./services/queueProcessor');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,7 +20,10 @@ app.get('/', (req, res) => {
     endpoints: {
       'POST /events': 'Submit a play event',
       'GET /campaigns': 'Get campaign statistics',
-      'GET /screens': 'Get screen impressions breakdown'
+      'GET /screens': 'Get screen impressions breakdown',
+      'GET /processor/status': 'Get queue processor status',
+      'POST /processor/pause': 'Pause queue processing',
+      'POST /processor/resume': 'Resume queue processing'
     }
   });
 });
@@ -93,6 +96,59 @@ app.get('/screens', (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching screen impressions:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /processor/status - Get queue processor status
+app.get('/processor/status', (req, res) => {
+  try {
+    const status = getProcessorStatus();
+    res.json(status);
+  } catch (error) {
+    console.error('Error fetching processor status:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// POST /processor/pause - Pause queue processing
+app.post('/processor/pause', (req, res) => {
+  try {
+    const success = pauseQueueProcessor();
+    if (success) {
+      res.json({ 
+        message: 'Queue processor paused',
+        status: getProcessorStatus()
+      });
+    } else {
+      res.json({ 
+        message: 'Queue processor already paused',
+        status: getProcessorStatus()
+      });
+    }
+  } catch (error) {
+    console.error('Error pausing processor:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// POST /processor/resume - Resume queue processing
+app.post('/processor/resume', (req, res) => {
+  try {
+    const success = resumeQueueProcessor();
+    if (success) {
+      res.json({ 
+        message: 'Queue processor resumed',
+        status: getProcessorStatus()
+      });
+    } else {
+      res.json({ 
+        message: 'Queue processor already running',
+        status: getProcessorStatus()
+      });
+    }
+  } catch (error) {
+    console.error('Error resuming processor:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

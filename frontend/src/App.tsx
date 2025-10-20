@@ -30,12 +30,22 @@ interface ScreensResponse {
   screens: ScreenImpression[];
 }
 
+interface ProcessorStatus {
+  running: boolean;
+  paused: boolean;
+  interval: number;
+  batchSize: number;
+}
+
 function App() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [screenImpressions, setScreenImpressions] = useState<ScreenImpression[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [simulating, setSimulating] = useState(false);
+  const [processorPaused, setProcessorPaused] = useState(false);
+  const [togglingProcessor, setTogglingProcessor] = useState(false);
+  const [simulationInterval, setSimulationInterval] = useState<number | null>(null);
 
   // Fetch campaigns from API
   const fetchCampaigns = async () => {
@@ -62,48 +72,112 @@ function App() {
     }
   };
 
-  // Simulate a random play event
-  const simulateEvent = async () => {
-    setSimulating(true);
-    
+  // Fetch processor status
+  const fetchProcessorStatus = async () => {
+    try {
+      const response = await fetch(`${API_URL}/processor/status`);
+      const data: ProcessorStatus = await response.json();
+      setProcessorPaused(data.paused);
+    } catch (error) {
+      console.error('Error fetching processor status:', error);
+    }
+  };
+
+  // Toggle processor pause/resume
+  const toggleProcessor = async () => {
+    setTogglingProcessor(true);
+    try {
+      const endpoint = processorPaused ? '/processor/resume' : '/processor/pause';
+      const response = await fetch(`${API_URL}${endpoint}`, {
+        method: 'POST'
+      });
+      const data = await response.json();
+      setProcessorPaused(data.status.paused);
+    } catch (error) {
+      console.error('Error toggling processor:', error);
+    } finally {
+      setTogglingProcessor(false);
+    }
+  };
+
+  // Generate and send events to the API
+  const generateEvents = async () => {
     const screenIds = ['screen-101', 'screen-102', 'screen-103', 'screen-104', 'screen-105'];
     const campaignIds = ['cmp-2025-123', 'cmp-2025-456', 'cmp-2025-789'];
     
-    const randomScreen = screenIds[Math.floor(Math.random() * screenIds.length)];
-    const randomCampaign = campaignIds[Math.floor(Math.random() * campaignIds.length)];
-    
-    const event = {
-      screen_id: randomScreen,
-      campaign_id: randomCampaign,
-      timestamp: new Date().toISOString()
-    };
-
     try {
-      await fetch(`${API_URL}/events`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(event)
-      });
-      
-      // Fetch updated data after a short delay
-      setTimeout(() => {
-        fetchCampaigns();
-        fetchScreenImpressions();
-      }, 500);
+      // Generate and send 20 random events
+      const eventPromises = [];
+      for (let i = 0; i < 20; i++) {
+        const randomScreen = screenIds[Math.floor(Math.random() * screenIds.length)];
+        const randomCampaign = campaignIds[Math.floor(Math.random() * campaignIds.length)];
+        
+        const event = {
+          screen_id: randomScreen,
+          campaign_id: randomCampaign,
+          timestamp: new Date().toISOString()
+        };
+
+        // Send event to API
+        const promise = fetch(`${API_URL}/events`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(event)
+        });
+
+        eventPromises.push(promise);
+      }
+
+      // Wait for all events to be sent
+      await Promise.all(eventPromises);
     } catch (error) {
-      console.error('Error simulating event:', error);
-    } finally {
-      setTimeout(() => setSimulating(false), 500);
+      console.error('Error generating events:', error);
     }
   };
+
+  // Toggle continuous event simulation
+  const toggleSimulation = () => {
+    if (simulating) {
+      // Stop simulation
+      if (simulationInterval) {
+        clearInterval(simulationInterval);
+        setSimulationInterval(null);
+      }
+      setSimulating(false);
+    } else {
+      // Start simulation
+      setSimulating(true);
+      
+      // Generate events immediately
+      generateEvents();
+      
+      // Then continue generating every 2 seconds
+      const interval = setInterval(() => {
+        generateEvents();
+      }, 2000);
+      
+      setSimulationInterval(interval);
+    }
+  };
+
+  // Cleanup interval on unmount
+  useEffect(() => {
+    return () => {
+      if (simulationInterval) {
+        clearInterval(simulationInterval);
+      }
+    };
+  }, [simulationInterval]);
 
   // Auto-refresh effect
   useEffect(() => {
     fetchCampaigns();
     fetchScreenImpressions();
+    fetchProcessorStatus();
     const interval = setInterval(() => {
       fetchCampaigns();
       fetchScreenImpressions();
+      fetchProcessorStatus();
     }, REFRESH_INTERVAL);
     return () => clearInterval(interval);
   }, []);
@@ -117,11 +191,21 @@ function App() {
         </div>
         <div className="header-actions">
           <button 
-            className="simulate-btn" 
-            onClick={simulateEvent}
-            disabled={simulating}
+            className={`simulate-btn ${simulating ? 'active' : ''}`}
+            onClick={toggleSimulation}
           >
-            {simulating ? 'Simulating...' : 'Simulate Event'}
+            {simulating ? 'Stop Simulation' : 'Start Simulation'}
+          </button>
+          <button 
+            className={`processor-toggle-btn ${processorPaused ? 'paused' : 'running'}`}
+            onClick={toggleProcessor}
+            disabled={togglingProcessor}
+          >
+            {togglingProcessor 
+              ? 'Toggling...' 
+              : processorPaused 
+                ? 'Resume Processing' 
+                : 'Pause Processing'}
           </button>
         </div>
       </header>
@@ -148,8 +232,10 @@ function App() {
           </span>
         </div>
         <div className="stat-item auto-refresh">
-          <span className="stat-label">Auto-refresh</span>
-          <span className="stat-value pulse">Active</span>
+          <span className="stat-label">Processor Status</span>
+          <span className={`stat-value ${processorPaused ? 'paused-status' : 'active-status'}`}>
+            {processorPaused ? 'Paused' : 'Active'}
+          </span>
         </div>
       </div>
 
@@ -159,7 +245,7 @@ function App() {
         ) : campaigns.length === 0 ? (
           <div className="empty-state">
             <h2>No campaigns yet</h2>
-            <p>Click "Simulate Event" to generate some data</p>
+            <p>Click "Start Simulation" to generate data</p>
           </div>
         ) : (
           <>
