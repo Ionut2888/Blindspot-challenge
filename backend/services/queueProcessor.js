@@ -12,7 +12,7 @@ function processBatch() {
     return;
   }
 
-  console.log(`\nProcessing queue (${queueSize} events pending)...`);
+  console.log(`\n[PROCESSOR] Processing queue (${queueSize} events pending)...`);
   
   let processedCount = 0;
   const maxEvents = Math.min(BATCH_SIZE, queueSize);
@@ -24,20 +24,20 @@ function processBatch() {
         processEvent(event);
         processedCount++;
       } catch (error) {
-        console.error('Error processing event:', error);
+        console.error('[PROCESSOR] Error processing event:', error);
       }
     }
   }
 
   if (processedCount > 0) {
-    console.log(`✨ Batch complete: ${processedCount} events processed\n`);
+    console.log(`[PROCESSOR] Batch complete: ${processedCount} events processed\n`);
   }
 }
 
 
 function startQueueProcessor() {
   if (processorInterval) {
-    console.log('⚠️  Queue processor already running');
+    console.log('[PROCESSOR] Queue processor already running');
     return;
   }
 
@@ -47,7 +47,7 @@ function startQueueProcessor() {
   // Then process at regular intervals
   processorInterval = setInterval(processBatch, PROCESS_INTERVAL);
   
-  console.log(`Queue processor started (interval: ${PROCESS_INTERVAL}ms, batch size: ${BATCH_SIZE})`);
+  console.log(`[PROCESSOR] Queue processor started (interval: ${PROCESS_INTERVAL}ms, batch size: ${BATCH_SIZE})`);
 }
 
 
@@ -55,7 +55,7 @@ function stopQueueProcessor() {
   if (processorInterval) {
     clearInterval(processorInterval);
     processorInterval = null;
-    console.log('Queue processor stopped');
+    console.log('[PROCESSOR] Queue processor stopped');
   }
 }
 

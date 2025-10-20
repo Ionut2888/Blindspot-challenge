@@ -14,7 +14,7 @@ function addEventToQueue(event) {
     ...event,
     queued_at: new Date().toISOString()
   });
-  console.log(`Event queued: ${event.campaign_id} on ${event.screen_id} (Queue size: ${eventQueue.length})`);
+  console.log(`[QUEUE] Event queued: ${event.campaign_id} on ${event.screen_id} (Queue size: ${eventQueue.length})`);
 }
 
 /**
@@ -53,7 +53,7 @@ function processEvent(event) {
   stats.screens.add(screen_id);
   stats.last_played = timestamp;
 
-  console.log(`Processed: ${campaign_id} (Total plays: ${stats.play_count})`);
+  console.log(`[PROCESSOR] Processed: ${campaign_id} (Total plays: ${stats.play_count})`);
 }
 
 /**

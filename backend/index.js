@@ -72,10 +72,10 @@ app.get('/campaigns', (req, res) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`DOOH Platform API running on port ${PORT}`);
-  console.log(`Dashboard: http://localhost:${PORT}`);
+  console.log(`[SERVER] DOOH Platform API running on port ${PORT}`);
+  console.log(`[SERVER] Dashboard: http://localhost:${PORT}`);
   
   // Start background queue processor
   startQueueProcessor();
-  console.log('Background queue processor started');
+  console.log('[SERVER] Background queue processor started');
 });
