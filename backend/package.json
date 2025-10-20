@@ -1,16 +1,19 @@
 {
-  "name": "backend",
+  "name": "dooh-backend",
   "version": "1.0.0",
   "main": "index.js",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
     "test": "node test-api.js"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": ["dooh", "digital-signage", "campaigns"],
+  "author": "Ionut Gardu",
   "license": "ISC",
-  "description": "",
+  "description": "DOOH Platform Backend - Digital Out-Of-Home campaign analytics",
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
