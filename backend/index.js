@@ -9,8 +9,26 @@ const { startQueueProcessor, pauseQueueProcessor, resumeQueueProcessor, getProce
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Allowed CORS origins
+const allowedOrigins = [
+  'http://localhost:5173', // Local frontend dev server
+  'https://blindspot-challenge.netlify.app' // Production frontend
+];
+
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
 app.use(express.json());
 
 // Routes
