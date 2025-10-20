@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 
+const { connectToDatabase } = require('./config/database');
 const { addEventToQueue, getCampaignStats, getScreenImpressions } = require('./services/eventService');
 const { startQueueProcessor, pauseQueueProcessor, resumeQueueProcessor, getProcessorStatus } = require('./services/queueProcessor');
 
@@ -50,23 +51,22 @@ app.post('/events', (req, res) => {
   }
 });
 
-app.get('/campaigns', (req, res) => {
+app.get('/campaigns', async (req, res) => {
   try {
-    const stats = getCampaignStats();
+    const campaigns = await getCampaignStats();
     
-    const campaigns = Array.from(stats.entries()).map(([campaignId, data]) => ({
-      campaign_id: campaignId,
-      play_count: data.play_count,
-      screens: data.screens.size,
-      last_played: data.last_played,
-      screen_ids: Array.from(data.screens)
+    // Format campaigns data
+    const formattedCampaigns = campaigns.map(campaign => ({
+      campaign_id: campaign.campaign_id,
+      play_count: campaign.play_count || 0,
+      screens: campaign.screen_ids ? campaign.screen_ids.length : 0,
+      last_played: campaign.last_played,
+      screen_ids: campaign.screen_ids || []
     }));
 
-    campaigns.sort((a, b) => b.play_count - a.play_count);
-
     res.json({
-      total_campaigns: campaigns.length,
-      campaigns
+      total_campaigns: formattedCampaigns.length,
+      campaigns: formattedCampaigns
     });
   } catch (error) {
     console.error('Error fetching campaigns:', error);
@@ -75,24 +75,21 @@ app.get('/campaigns', (req, res) => {
 });
 
 // GET /screens - Get screen impressions breakdown
-app.get('/screens', (req, res) => {
+app.get('/screens', async (req, res) => {
   try {
-    const screenStats = getScreenImpressions();
+    const screens = await getScreenImpressions();
     
-    // Convert stats map to array format
-    const screens = Array.from(screenStats.entries()).map(([screenId, data]) => ({
-      screen_id: screenId,
-      impression_count: data.impression_count,
-      campaigns: data.campaigns.size,
-      campaign_ids: Array.from(data.campaigns)
+    // Format screens data
+    const formattedScreens = screens.map(screen => ({
+      screen_id: screen.screen_id,
+      impression_count: screen.impression_count || 0,
+      campaigns: screen.campaign_ids ? screen.campaign_ids.length : 0,
+      campaign_ids: screen.campaign_ids || []
     }));
 
-    // Sort by impression count descending
-    screens.sort((a, b) => b.impression_count - a.impression_count);
-
     res.json({
-      total_screens: screens.length,
-      screens
+      total_screens: formattedScreens.length,
+      screens: formattedScreens
     });
   } catch (error) {
     console.error('Error fetching screen impressions:', error);
@@ -133,9 +130,9 @@ app.post('/processor/pause', (req, res) => {
 });
 
 // POST /processor/resume - Resume queue processing
-app.post('/processor/resume', (req, res) => {
+app.post('/processor/resume', async (req, res) => {
   try {
-    const success = resumeQueueProcessor();
+    const success = await resumeQueueProcessor();
     if (success) {
       res.json({ 
         message: 'Queue processor resumed',
@@ -154,11 +151,23 @@ app.post('/processor/resume', (req, res) => {
 });
 
 // Start server
-app.listen(PORT, () => {
-  console.log(`[SERVER] DOOH Platform API running on port ${PORT}`);
-  console.log(`[SERVER] Dashboard: http://localhost:${PORT}`);
-  
-  // Start background queue processor
-  startQueueProcessor();
-  console.log('[SERVER] Background queue processor started');
-});
+async function startServer() {
+  try {
+    // Connect to MongoDB first
+    await connectToDatabase();
+    
+    app.listen(PORT, () => {
+      console.log(`[SERVER] DOOH Platform API running on port ${PORT}`);
+      console.log(`[SERVER] Dashboard: http://localhost:${PORT}`);
+      
+      // Start background queue processor
+      startQueueProcessor();
+      console.log('[SERVER] Background queue processor started');
+    });
+  } catch (error) {
+    console.error('[SERVER] Failed to start:', error.message);
+    process.exit(1);
+  }
+}
+
+startServer();

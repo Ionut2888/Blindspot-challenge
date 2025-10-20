@@ -6,7 +6,7 @@ const BATCH_SIZE = 10; // Process up to 10 events per batch
 let processorInterval = null;
 let isPaused = false;
 
-function processBatch() {
+async function processBatch() {
   // Skip processing if paused
   if (isPaused) {
     return;
@@ -27,7 +27,7 @@ function processBatch() {
     const event = getNextEvent();
     if (event) {
       try {
-        processEvent(event);
+        await processEvent(event);
         processedCount++;
       } catch (error) {
         console.error('[PROCESSOR] Error processing event:', error);
@@ -80,12 +80,12 @@ function pauseQueueProcessor() {
 /**
  * Resume queue processing
  */
-function resumeQueueProcessor() {
+async function resumeQueueProcessor() {
   if (isPaused) {
     isPaused = false;
     console.log('[PROCESSOR] Queue processor resumed');
     // Process immediately on resume
-    processBatch();
+    await processBatch();
     return true;
   }
   return false;
