@@ -12,18 +12,29 @@ const PORT = process.env.PORT || 3000;
 // Allowed CORS origins
 const allowedOrigins = [
   'http://localhost:5173', // Local frontend dev server
-  'https://blindspot-challenge.netlify.app' // Production frontend
+  'http://localhost:3000', // Local testing
+  'https://68f6aa277cd13e348a2d5162--blindspot-challenge.netlify.app', // Netlify deploy URL
+
 ];
 
 // Middleware
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl)
+    // Allow requests with no origin (like mobile apps, Postman, or curl)
     if (!origin) return callback(null, true);
     
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    // Check if origin matches any allowed origin (string or regex)
+    const isAllowed = allowedOrigins.some(allowed => {
+      if (typeof allowed === 'string') {
+        return origin === allowed;
+      }
+      return allowed.test(origin);
+    });
+    
+    if (isAllowed) {
       callback(null, true);
     } else {
+      console.log(`[CORS] Blocked origin: ${origin}`);
       callback(new Error('Not allowed by CORS'));
     }
   },
