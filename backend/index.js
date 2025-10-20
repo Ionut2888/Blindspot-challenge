@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 
-const { addEventToQueue, getCampaignStats } = require('./services/eventService');
+const { addEventToQueue, getCampaignStats, getScreenImpressions } = require('./services/eventService');
 const { startQueueProcessor } = require('./services/queueProcessor');
 
 const app = express();
@@ -19,7 +19,8 @@ app.get('/', (req, res) => {
     version: '1.0.0',
     endpoints: {
       'POST /events': 'Submit a play event',
-      'GET /campaigns': 'Get campaign statistics'
+      'GET /campaigns': 'Get campaign statistics',
+      'GET /screens': 'Get screen impressions breakdown'
     }
   });
 });
@@ -66,6 +67,32 @@ app.get('/campaigns', (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching campaigns:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /screens - Get screen impressions breakdown
+app.get('/screens', (req, res) => {
+  try {
+    const screenStats = getScreenImpressions();
+    
+    // Convert stats map to array format
+    const screens = Array.from(screenStats.entries()).map(([screenId, data]) => ({
+      screen_id: screenId,
+      impression_count: data.impression_count,
+      campaigns: data.campaigns.size,
+      campaign_ids: Array.from(data.campaigns)
+    }));
+
+    // Sort by impression count descending
+    screens.sort((a, b) => b.impression_count - a.impression_count);
+
+    res.json({
+      total_screens: screens.length,
+      screens
+    });
+  } catch (error) {
+    console.error('Error fetching screen impressions:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

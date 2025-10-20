@@ -18,8 +18,21 @@ interface CampaignsResponse {
   campaigns: Campaign[];
 }
 
+interface ScreenImpression {
+  screen_id: string;
+  impression_count: number;
+  campaigns: number;
+  campaign_ids: string[];
+}
+
+interface ScreensResponse {
+  total_screens: number;
+  screens: ScreenImpression[];
+}
+
 function App() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [screenImpressions, setScreenImpressions] = useState<ScreenImpression[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [simulating, setSimulating] = useState(false);
@@ -35,6 +48,17 @@ function App() {
     } catch (error) {
       console.error('Error fetching campaigns:', error);
       setLoading(false);
+    }
+  };
+
+  // Fetch screen impressions from API
+  const fetchScreenImpressions = async () => {
+    try {
+      const response = await fetch(`${API_URL}/screens`);
+      const data: ScreensResponse = await response.json();
+      setScreenImpressions(data.screens);
+    } catch (error) {
+      console.error('Error fetching screen impressions:', error);
     }
   };
 
@@ -62,7 +86,10 @@ function App() {
       });
       
       // Fetch updated data after a short delay
-      setTimeout(fetchCampaigns, 500);
+      setTimeout(() => {
+        fetchCampaigns();
+        fetchScreenImpressions();
+      }, 500);
     } catch (error) {
       console.error('Error simulating event:', error);
     } finally {
@@ -73,7 +100,11 @@ function App() {
   // Auto-refresh effect
   useEffect(() => {
     fetchCampaigns();
-    const interval = setInterval(fetchCampaigns, REFRESH_INTERVAL);
+    fetchScreenImpressions();
+    const interval = setInterval(() => {
+      fetchCampaigns();
+      fetchScreenImpressions();
+    }, REFRESH_INTERVAL);
     return () => clearInterval(interval);
   }, []);
 
@@ -99,6 +130,10 @@ function App() {
         <div className="stat-item">
           <span className="stat-label">Total Campaigns</span>
           <span className="stat-value">{campaigns.length}</span>
+        </div>
+        <div className="stat-item">
+          <span className="stat-label">Total Screens</span>
+          <span className="stat-value">{screenImpressions.length}</span>
         </div>
         <div className="stat-item">
           <span className="stat-label">Total Plays</span>
@@ -165,6 +200,50 @@ function App() {
                       dataKey="play_count" 
                       fill="#2563eb" 
                       name="Play Count"
+                      radius={[8, 8, 0, 0]}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Screen Impressions Section */}
+            <div className="chart-section">
+              <h2 className="section-title">Impressions per Screen</h2>
+              <div className="chart-container">
+                <ResponsiveContainer width="100%" height={350}>
+                  <BarChart
+                    data={screenImpressions}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                    <XAxis 
+                      dataKey="screen_id" 
+                      stroke="#64748b"
+                      style={{ fontSize: '0.875rem' }}
+                    />
+                    <YAxis 
+                      stroke="#64748b"
+                      style={{ fontSize: '0.875rem' }}
+                      label={{ value: 'Total Impressions', angle: -90, position: 'insideLeft', style: { fill: '#64748b' } }}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: '#ffffff', 
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '0.5rem',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                      }}
+                      labelStyle={{ color: '#0f172a', fontWeight: 600 }}
+                    />
+                    <Legend 
+                      wrapperStyle={{ paddingTop: '20px' }}
+                      iconType="square"
+                    />
+                    <Bar 
+                      dataKey="impression_count" 
+                      fill="#10b981" 
+                      name="Impressions"
                       radius={[8, 8, 0, 0]}
                     />
                   </BarChart>

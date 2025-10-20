@@ -5,6 +5,10 @@ const eventQueue = [];
 // Structure: Map<campaign_id, { play_count, screens: Set, last_played }>
 const campaignStats = new Map();
 
+// In-memory screen impressions store
+// Structure: Map<screen_id, { impression_count, campaigns: Set }>
+const screenImpressions = new Map();
+
 /**
  * Add a play event to the queue
  * @param {Object} event - Play event object
@@ -40,6 +44,7 @@ function getQueueSize() {
 function processEvent(event) {
   const { campaign_id, screen_id, timestamp } = event;
   
+  // Update campaign stats
   if (!campaignStats.has(campaign_id)) {
     campaignStats.set(campaign_id, {
       play_count: 0,
@@ -52,6 +57,18 @@ function processEvent(event) {
   stats.play_count += 1;
   stats.screens.add(screen_id);
   stats.last_played = timestamp;
+
+  // Update screen impressions
+  if (!screenImpressions.has(screen_id)) {
+    screenImpressions.set(screen_id, {
+      impression_count: 0,
+      campaigns: new Set()
+    });
+  }
+
+  const screenStats = screenImpressions.get(screen_id);
+  screenStats.impression_count += 1;
+  screenStats.campaigns.add(campaign_id);
 
   console.log(`[PROCESSOR] Processed: ${campaign_id} (Total plays: ${stats.play_count})`);
 }
@@ -74,10 +91,19 @@ function getCampaignById(campaignId) {
 }
 
 /**
+ * Get all screen impressions
+ * @returns {Map} - Screen impressions map
+ */
+function getScreenImpressions() {
+  return screenImpressions;
+}
+
+/**
  * Reset all stats (useful for testing)
  */
 function resetStats() {
   campaignStats.clear();
+  screenImpressions.clear();
   eventQueue.length = 0;
 }
 
@@ -88,5 +114,6 @@ module.exports = {
   processEvent,
   getCampaignStats,
   getCampaignById,
+  getScreenImpressions,
   resetStats
 };
